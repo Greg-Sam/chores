@@ -26,10 +26,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
-    if (!description || typeof description !== 'string' || description.trim() === '') {
-      return NextResponse.json({ error: 'Description is required' }, { status: 400 });
-    }
-
     if (!FREQUENCY_VALUES.includes(frequency as Frequency)) {
       return NextResponse.json(
         { error: `Frequency must be one of: ${FREQUENCY_VALUES.join(', ')}` },
@@ -45,7 +41,7 @@ export async function POST(request: Request) {
 
     const chore = await Chore.create({
       name: name.trim(),
-      description: description.trim(),
+      description: description?.trim() ?? '',
       frequency,
       dueDate: new Date(dueDate),
       assignedTo: assignedTo ?? null,

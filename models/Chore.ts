@@ -46,7 +46,7 @@ export interface IChoreHistoryEntry {
 
 export interface IChore {
   name: string;
-  description: string;
+  description?: string;
   frequency: Frequency;
   assignedTo: Types.ObjectId | null;
   status: ChoreStatus;
@@ -85,8 +85,9 @@ const ChoreSchema = new Schema<ChoreDocument>(
     },
     description: {
       type: String,
-      required: [true, 'Chore description is required'],
+      required: false,
       trim: true,
+      default: '',
     },
     frequency: {
       type: String,

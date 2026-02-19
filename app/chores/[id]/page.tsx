@@ -114,7 +114,7 @@ export default function ManageChorePage() {
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-muted text-sm">Description *</span>
+          <span className="text-muted text-sm">Description</span>
           <textarea
             name="description"
             value={form.description}

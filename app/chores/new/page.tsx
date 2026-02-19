@@ -33,8 +33,8 @@ export default function NewChorePage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    if (!form.name.trim() || !form.description.trim() || !form.dueDate) {
-      setError('Name, description, and due date are required.');
+    if (!form.name.trim() || !form.dueDate) {
+      setError('Name and due date are required.');
       return;
     }
     setSubmitting(true);
@@ -74,7 +74,7 @@ export default function NewChorePage() {
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-muted text-sm">Description *</span>
+          <span className="text-muted text-sm">Description</span>
           <textarea
             name="description"
             value={form.description}
