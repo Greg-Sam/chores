@@ -57,10 +57,14 @@ export default function ChoreListPage() {
       )}
       {chores.map(chore => {
         const isActive = chore.status === 'active';
-        const isOverdue = new Date(chore.dueDate) < new Date() && isActive;
+        const dueDateUTC = new Date(chore.dueDate).toISOString().slice(0, 10);
+        const todayUTC = new Date().toISOString().slice(0, 10);
+        const isOverdue = dueDateUTC < todayUTC && isActive;
         const assignedUser = chore.assignedTo;
         const isAssignedToMe = assignedUser?._id === selectedUserId;
-        const dueLabel = new Date(chore.dueDate).toLocaleDateString();
+        const dueLabel = new Date(dueDateUTC + 'T12:00:00').toLocaleDateString(undefined, {
+          month: 'short', day: 'numeric', year: 'numeric',
+        });
 
         return (
           <div
