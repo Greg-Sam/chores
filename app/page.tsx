@@ -57,6 +57,7 @@ export default function ChoreListPage() {
       )}
       {chores.map(chore => {
         const isActive = chore.status === 'active';
+        const isOverdue = new Date(chore.dueDate) < new Date() && isActive;
         const assignedUser = chore.assignedTo;
         const isAssignedToMe = assignedUser?._id === selectedUserId;
         const dueLabel = new Date(chore.dueDate).toLocaleDateString();
@@ -64,9 +65,11 @@ export default function ChoreListPage() {
         return (
           <div
             key={chore._id}
-            className={`bg-surface rounded-lg px-4 py-3 flex items-center justify-between gap-3 ${
-              isActive ? 'opacity-100' : 'opacity-60'
-            }`}
+            className={`rounded-lg px-4 py-3 flex items-center justify-between gap-3 ${
+              isOverdue
+                ? 'bg-red-950/60 border-l-4 border-red-500'
+                : 'bg-surface'
+            } ${isActive ? 'opacity-100' : 'opacity-60'}`}
           >
             {/* Left: chore info */}
             <div className="flex flex-col gap-0.5 min-w-0">
@@ -78,7 +81,7 @@ export default function ChoreListPage() {
               >
                 {chore.name}
               </Link>
-              <p className="text-muted text-xs">
+              <p className={`text-xs ${isOverdue ? 'text-red-400' : 'text-muted'}`}>
                 {chore.frequency} · due {dueLabel} ·{' '}
                 {assignedUser ? assignedUser.name : 'Unassigned'}
               </p>
