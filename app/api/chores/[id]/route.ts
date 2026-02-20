@@ -26,7 +26,6 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
       const completedAt = new Date();
       chore.completedDate = completedAt;
-      chore.status = 'queued';
       chore.dueDate = calculateNextDueDate(completedAt, chore.frequency);
       chore.history.push({ completedAt, completedBy: userId });
       chore.assignedTo = null;

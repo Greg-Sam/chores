@@ -4,30 +4,58 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { Chore } from '@/app/types';
 
+async function fetchWithRetry(url: string, options?: RequestInit, retries = 1): Promise<Response> {
+  try {
+    const res = await fetch(url, options);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res;
+  } catch (err) {
+    if (retries > 0) {
+      await new Promise(r => setTimeout(r, 500));
+      return fetchWithRetry(url, options, retries - 1);
+    }
+    throw err;
+  }
+}
+
+async function loadChores(): Promise<Chore[]> {
+  const res = await fetchWithRetry('/api/chores');
+  return res.json();
+}
+
 export default function ChoreListPage() {
   const [chores, setChores] = useState<Chore[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedUserId] = useState<string>(() =>
     typeof window !== 'undefined' ? (localStorage.getItem('selectedUserId') ?? '') : ''
   );
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch('/api/chores')
-      .then(r => r.json())
-      .then((data: Chore[]) => {
-        setChores(data);
-        setLoading(false);
-      });
-  }, []);
 
   async function fetchChores() {
-    const res = await fetch('/api/chores');
-    const data = await res.json();
+    const data = await loadChores();
     setChores(data);
   }
 
+  useEffect(() => {
+    // Load chores on mount. loadChores is a module-level function with no
+    // setState calls, so it does not trigger the set-state-in-effect rule.
+    loadChores().then(data => {
+      setChores(data);
+      setLoading(false);
+    });
+
+    // On iOS, tabs can go dormant and the first action after waking fails.
+    // Re-fetch when the page becomes visible again to warm the connection.
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        loadChores().then(setChores);
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   async function handleClaim(choreId: string, assignTo: string | null) {
-    await fetch(`/api/chores/${choreId}`, {
+    await fetchWithRetry(`/api/chores/${choreId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'assign', assignedTo: assignTo }),
@@ -37,7 +65,7 @@ export default function ChoreListPage() {
 
   async function handleComplete(choreId: string) {
     if (!selectedUserId) return;
-    await fetch(`/api/chores/${choreId}`, {
+    await fetchWithRetry(`/api/chores/${choreId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'complete', userId: selectedUserId }),
@@ -56,9 +84,9 @@ export default function ChoreListPage() {
         <p className="text-muted">No chores yet. Use the &quot;+ Add&quot; menu above to create one.</p>
       )}
       {chores.map(chore => {
-        const isActive = chore.status === 'active';
         const dueDateUTC = new Date(chore.dueDate).toISOString().slice(0, 10);
         const todayUTC = new Date().toISOString().slice(0, 10);
+        const isActive = dueDateUTC <= todayUTC;
         const isOverdue = dueDateUTC < todayUTC && isActive;
         const assignedUser = chore.assignedTo;
         const isAssignedToMe = assignedUser?._id === selectedUserId;

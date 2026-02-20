@@ -13,8 +13,6 @@ export const FREQUENCY_VALUES = [
 
 export type Frequency = (typeof FREQUENCY_VALUES)[number];
 
-export const STATUS_VALUES = ['active', 'queued'] as const;
-export type ChoreStatus = (typeof STATUS_VALUES)[number];
 
 export const FREQUENCY_DAYS: Record<Frequency, number> = {
   daily: 1,
@@ -49,7 +47,6 @@ export interface IChore {
   description?: string;
   frequency: Frequency;
   assignedTo: Types.ObjectId | null;
-  status: ChoreStatus;
   dueDate: Date;
   completedDate: Date | null;
   history: IChoreHistoryEntry[];
@@ -98,12 +95,6 @@ const ChoreSchema = new Schema<ChoreDocument>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       default: null,
-    },
-    status: {
-      type: String,
-      enum: STATUS_VALUES,
-      required: [true, 'Status is required'],
-      default: 'active',
     },
     dueDate: {
       type: Date,

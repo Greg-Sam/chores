@@ -45,7 +45,6 @@ export async function POST(request: Request) {
       frequency,
       dueDate: new Date(dueDate),
       assignedTo: assignedTo ?? null,
-      status: 'active',
     });
 
     return NextResponse.json(chore, { status: 201 });
