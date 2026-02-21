@@ -43,6 +43,11 @@ export default function ChoreListPage() {
       setLoading(false);
     });
 
+    // Poll every 30 seconds to pick up changes made by other users.
+    const interval = setInterval(() => {
+      loadChores().then(setChores);
+    }, 30000);
+
     // On iOS, tabs can go dormant and the first action after waking fails.
     // Re-fetch when the page becomes visible again to warm the connection.
     function handleVisibilityChange() {
@@ -51,7 +56,10 @@ export default function ChoreListPage() {
       }
     }
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   async function handleClaim(choreId: string, assignTo: string | null) {
@@ -83,7 +91,18 @@ export default function ChoreListPage() {
       {chores.length === 0 && (
         <p className="text-muted">No chores yet. Use the &quot;+ Add&quot; menu above to create one.</p>
       )}
-      {chores.map(chore => {
+      {[...chores].sort((a, b) => {
+        const dateA = new Date(a.dueDate).toISOString().slice(0, 10);
+        const dateB = new Date(b.dueDate).toISOString().slice(0, 10);
+        if (dateA !== dateB) return dateA < dateB ? -1 : 1;
+
+        const rank = (chore: Chore) => {
+          if (chore.assignedTo?._id === selectedUserId) return 0;
+          if (!chore.assignedTo) return 1;
+          return 2;
+        };
+        return rank(a) - rank(b);
+      }).map(chore => {
         const dueDateUTC = new Date(chore.dueDate).toISOString().slice(0, 10);
         const todayUTC = new Date().toISOString().slice(0, 10);
         const isActive = dueDateUTC <= todayUTC;
