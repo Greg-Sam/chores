@@ -1,15 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { Chore, User } from '@/app/types';
 
 export default function ChoreHistoryPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [chore, setChore] = useState<Chore | null>(null);
   const [userMap, setUserMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -37,6 +40,12 @@ export default function ChoreHistoryPage() {
   const sorted = [...chore.history].sort(
     (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
   );
+
+  async function handleDelete() {
+    setDeleting(true);
+    await fetch(`/api/chores/${id}`, { method: 'DELETE' });
+    router.push('/');
+  }
 
   return (
     <div className="max-w-md">
@@ -69,6 +78,34 @@ export default function ChoreHistoryPage() {
           })}
         </ul>
       )}
+
+      <div className="mt-8 pt-6 border-t border-muted/20">
+        {!confirmDelete ? (
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="text-sm text-red-400 hover:text-red-300 border border-red-400/40 hover:border-red-300 px-3 py-1.5 rounded transition-colors"
+          >
+            Delete this chore
+          </button>
+        ) : (
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted">Are you sure?</span>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="text-sm bg-red-700 hover:bg-red-600 text-white px-3 py-1.5 rounded disabled:opacity-50 transition-colors"
+            >
+              {deleting ? 'Deleting...' : 'Yes, delete'}
+            </button>
+            <button
+              onClick={() => setConfirmDelete(false)}
+              className="text-sm text-muted hover:text-primary"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

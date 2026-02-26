@@ -29,6 +29,8 @@ export default function ChoreListPage() {
   const [selectedUserId] = useState<string>(() =>
     typeof window !== 'undefined' ? (localStorage.getItem('selectedUserId') ?? '') : ''
   );
+  const [completingId, setCompletingId] = useState<string | null>(null);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
 
   async function fetchChores() {
     const data = await loadChores();
@@ -63,21 +65,27 @@ export default function ChoreListPage() {
   }, []);
 
   async function handleClaim(choreId: string, assignTo: string | null) {
+    setClaimingId(choreId);
     await fetchWithRetry(`/api/chores/${choreId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'assign', assignedTo: assignTo }),
     });
+    await new Promise(r => setTimeout(r, 600));
+    setClaimingId(null);
     fetchChores();
   }
 
   async function handleComplete(choreId: string) {
     if (!selectedUserId) return;
+    setCompletingId(choreId);
     await fetchWithRetry(`/api/chores/${choreId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'complete', userId: selectedUserId }),
     });
+    await new Promise(r => setTimeout(r, 600));
+    setCompletingId(null);
     fetchChores();
   }
 
@@ -113,11 +121,18 @@ export default function ChoreListPage() {
           month: 'short', day: 'numeric', year: 'numeric',
         });
 
+        const isCompleting = completingId === chore._id;
+        const isClaiming = claimingId === chore._id;
+
         return (
           <div
             key={chore._id}
-            className={`rounded-lg px-4 py-3 flex items-center justify-between gap-3 ${
-              isOverdue
+            className={`rounded-lg px-4 py-3 flex items-center justify-between gap-3 transition-all duration-500 ${
+              isCompleting
+                ? 'bg-green-700/60 scale-95 opacity-0'
+                : isClaiming
+                ? 'bg-accent/30 border-l-4 border-accent'
+                : isOverdue
                 ? 'bg-red-950/60 border-l-4 border-red-500'
                 : 'bg-surface'
             } ${isActive ? 'opacity-100' : 'opacity-60'}`}
