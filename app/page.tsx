@@ -4,12 +4,16 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { Chore } from '@/app/types';
 
-async function fetchWithRetry(url: string, options?: RequestInit, retries = 1): Promise<Response> {
+async function fetchWithRetry(url: string, options?: RequestInit, retries = 2): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
   try {
-    const res = await fetch(url, options);
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeout);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res;
   } catch (err) {
+    clearTimeout(timeout);
     if (retries > 0) {
       await new Promise(r => setTimeout(r, 500));
       return fetchWithRetry(url, options, retries - 1);
@@ -50,11 +54,14 @@ export default function ChoreListPage() {
       loadChores().then(setChores);
     }, 30000);
 
-    // On iOS, tabs can go dormant and the first action after waking fails.
-    // Re-fetch when the page becomes visible again to warm the connection.
+    // On iOS, tabs can go dormant and hung fetches leave the app stuck on
+    // "Loading". Re-fetch on visibility and clear the loading state if needed.
     function handleVisibilityChange() {
       if (document.visibilityState === 'visible') {
-        loadChores().then(setChores);
+        loadChores().then(data => {
+          setChores(data);
+          setLoading(false);
+        });
       }
     }
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -112,9 +119,13 @@ export default function ChoreListPage() {
         return rank(a) - rank(b);
       }).map(chore => {
         const dueDateUTC = new Date(chore.dueDate).toISOString().slice(0, 10);
-        const todayUTC = new Date().toISOString().slice(0, 10);
-        const isActive = dueDateUTC <= todayUTC;
-        const isOverdue = dueDateUTC < todayUTC && isActive;
+        const now = new Date();
+        const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowLocal = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+        const isActive = dueDateUTC <= tomorrowLocal;
+        const isOverdue = dueDateUTC < todayLocal;
         const assignedUser = chore.assignedTo;
         const isAssignedToMe = assignedUser?._id === selectedUserId;
         const dueLabel = new Date(dueDateUTC + 'T12:00:00').toLocaleDateString(undefined, {
@@ -123,19 +134,39 @@ export default function ChoreListPage() {
 
         const isCompleting = completingId === chore._id;
         const isClaiming = claimingId === chore._id;
+        const isClaimedByOther = !!assignedUser && !isAssignedToMe;
+
+        // Background reflects tier, with ownership tint layered in
+        const bgClass = isCompleting
+          ? 'bg-green-700/60 scale-95 opacity-0'
+          : isOverdue
+          ? isAssignedToMe
+            ? 'bg-red-950/70 bg-purple-950/30'
+            : isClaimedByOther
+            ? 'bg-red-950/70'
+            : 'bg-red-950/60'
+          : isAssignedToMe
+          ? 'bg-purple-950/50'
+          : isClaimedByOther
+          ? 'bg-amber-950/40'
+          : 'bg-surface';
+
+        // Left border: overdue always red, ownership shown when not overdue
+        // Animating claim takes priority
+        const borderClass = isClaiming
+          ? 'border-l-4 border-solid border-accent'
+          : isOverdue
+          ? 'border-l-4 border-solid border-red-500'
+          : isAssignedToMe
+          ? 'border-l-4 border-solid border-purple-400'
+          : isClaimedByOther
+          ? 'border-l-4 border-solid border-amber-500/70'
+          : '';
 
         return (
           <div
             key={chore._id}
-            className={`rounded-lg px-4 py-3 flex items-center justify-between gap-3 transition-all duration-500 ${
-              isCompleting
-                ? 'bg-green-700/60 scale-95 opacity-0'
-                : isClaiming
-                ? 'bg-accent/30 border-l-4 border-accent'
-                : isOverdue
-                ? 'bg-red-950/60 border-l-4 border-red-500'
-                : 'bg-surface'
-            } ${isActive ? 'opacity-100' : 'opacity-60'}`}
+            className={`rounded-lg px-4 py-3 flex items-center justify-between gap-3 transition-all duration-500 ${bgClass} ${borderClass} ${isActive ? 'opacity-100' : 'opacity-60'}`}
           >
             {/* Left: chore info */}
             <div className="flex flex-col gap-0.5 min-w-0">
