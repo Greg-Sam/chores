@@ -25,6 +25,7 @@ export default function Nav() {
   function handleUserChange(id: string) {
     setSelectedUserId(id);
     localStorage.setItem('selectedUserId', id);
+    window.dispatchEvent(new StorageEvent('storage', { key: 'selectedUserId', newValue: id }));
   }
 
   useEffect(() => {
