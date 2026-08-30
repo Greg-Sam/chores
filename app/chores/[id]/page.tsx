@@ -17,7 +17,6 @@ export default function ManageChorePage() {
 
   const [form, setForm] = useState({
     name: '',
-    description: '',
     frequency: 'weekly',
     dueDate: '',
     assignedTo: '',
@@ -33,7 +32,6 @@ export default function ManageChorePage() {
         setChore(found);
         setForm({
           name: found.name,
-          description: found.description,
           frequency: found.frequency,
           dueDate: found.dueDate.slice(0, 10),
           assignedTo: found.assignedTo?._id ?? '',
@@ -58,7 +56,6 @@ export default function ManageChorePage() {
       body: JSON.stringify({
         action: 'edit',
         name: form.name,
-        description: form.description,
         frequency: form.frequency,
         dueDate: form.dueDate,
       }),
@@ -110,17 +107,6 @@ export default function ManageChorePage() {
             value={form.name}
             onChange={handleChange}
             className="bg-surface border border-muted/30 text-primary rounded px-3 py-2 text-base"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-muted text-sm">Description</span>
-          <textarea
-            name="description"
-            value={form.description}
-            onChange={handleChange}
-            rows={3}
-            className="bg-surface border border-muted/30 text-primary rounded px-3 py-2 text-base resize-none"
           />
         </label>
 

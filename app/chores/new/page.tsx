@@ -14,7 +14,6 @@ export default function NewChorePage() {
 
   const [form, setForm] = useState({
     name: '',
-    description: '',
     frequency: 'weekly',
     dueDate: '',
     assignedTo: '',
@@ -43,7 +42,6 @@ export default function NewChorePage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: form.name.trim(),
-        description: form.description.trim(),
         frequency: form.frequency,
         dueDate: form.dueDate,
         assignedTo: form.assignedTo || undefined,
@@ -70,17 +68,6 @@ export default function NewChorePage() {
             onChange={handleChange}
             placeholder="e.g. Vacuum living room"
             className="bg-surface border border-muted/30 text-primary rounded px-3 py-2 text-base"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-muted text-sm">Description</span>
-          <textarea
-            name="description"
-            value={form.description}
-            onChange={handleChange}
-            rows={3}
-            className="bg-surface border border-muted/30 text-primary rounded px-3 py-2 text-base resize-none"
           />
         </label>
 

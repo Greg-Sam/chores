@@ -20,7 +20,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, description, frequency, dueDate, assignedTo } = body;
+    const { name, frequency, dueDate, assignedTo } = body;
 
     if (!name || typeof name !== 'string' || name.trim() === '') {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -41,7 +41,6 @@ export async function POST(request: Request) {
 
     const chore = await Chore.create({
       name: name.trim(),
-      description: description?.trim() ?? '',
       frequency,
       dueDate: new Date(dueDate),
       assignedTo: assignedTo ?? null,

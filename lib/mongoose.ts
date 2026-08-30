@@ -29,11 +29,24 @@ async function connectDB(): Promise<mongoose.Connection> {
 
   if (!cached.promise) {
     cached.promise = mongoose
-      .connect(MONGODB_URI as string, { bufferCommands: false })
-      .then((m) => m.connection);
+      .connect(MONGODB_URI as string, {
+        bufferCommands: false,
+        serverSelectionTimeoutMS: 5000,
+      })
+      .then((m) => m.connection)
+      .catch((err) => {
+        // Don't cache a rejected promise — the next request must be able to retry.
+        cached.promise = null;
+        throw err;
+      });
   }
 
-  cached.conn = await cached.promise;
+  try {
+    cached.conn = await cached.promise;
+  } catch (err) {
+    cached.promise = null;
+    throw err;
+  }
   return cached.conn;
 }
 

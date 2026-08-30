@@ -9,7 +9,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   try {
     const { id } = await params;
     const body = await request.json();
-    const { action, userId, assignedTo, name, description, frequency, dueDate } = body;
+    const { action, userId, assignedTo, name, frequency, dueDate } = body;
 
     await connectDB();
 
@@ -48,13 +48,6 @@ export async function PATCH(request: Request, { params }: RouteContext) {
           return NextResponse.json({ error: 'Name cannot be empty' }, { status: 400 });
         }
         chore.name = name.trim();
-      }
-
-      if (description !== undefined) {
-        if (typeof description !== 'string' || description.trim() === '') {
-          return NextResponse.json({ error: 'Description cannot be empty' }, { status: 400 });
-        }
-        chore.description = description.trim();
       }
 
       if (frequency !== undefined) {

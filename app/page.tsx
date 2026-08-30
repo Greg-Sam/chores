@@ -30,6 +30,7 @@ async function loadChores(): Promise<Chore[]> {
 export default function ChoreListPage() {
   const [chores, setChores] = useState<Chore[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedUserId] = useState<string>(() =>
     typeof window !== 'undefined' ? (localStorage.getItem('selectedUserId') ?? '') : ''
   );
@@ -42,30 +43,39 @@ export default function ChoreListPage() {
   }
 
   useEffect(() => {
-    // Load chores on mount. loadChores is a module-level function with no
-    // setState calls, so it does not trigger the set-state-in-effect rule.
-    loadChores().then(data => {
-      setChores(data);
-      setLoading(false);
-    });
+    let cancelled = false;
 
-    // Poll every 30 seconds to pick up changes made by other users.
-    const interval = setInterval(() => {
-      loadChores().then(setChores);
-    }, 30000);
-
-    // On iOS, tabs can go dormant and hung fetches leave the app stuck on
-    // "Loading". Re-fetch on visibility and clear the loading state if needed.
-    function handleVisibilityChange() {
-      if (document.visibilityState === 'visible') {
-        loadChores().then(data => {
-          setChores(data);
-          setLoading(false);
-        });
+    // Single source of truth for (re)loading the list. Always clears the
+    // loading gate in `finally`, so a failed fetch can never freeze the
+    // page on "Loading chores..." — the poll below will keep retrying.
+    async function refresh() {
+      try {
+        const data = await loadChores();
+        if (cancelled) return;
+        setChores(data);
+        setError(null);
+      } catch {
+        if (cancelled) return;
+        setError('Could not load chores. Retrying...');
+      } finally {
+        if (!cancelled) setLoading(false);
       }
+    }
+
+    refresh();
+
+    // Poll every 30 seconds to pick up changes made by other users — and to
+    // recover automatically if an earlier load failed.
+    const interval = setInterval(refresh, 30000);
+
+    // On iOS, tabs can go dormant and hung fetches leave the app stuck.
+    // Re-fetch whenever the tab comes back to the foreground.
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') refresh();
     }
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
+      cancelled = true;
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
@@ -103,7 +113,10 @@ export default function ChoreListPage() {
   return (
     <div className="flex flex-col gap-3">
       <h1 className="text-2xl font-bold text-primary mb-4">Chores</h1>
-      {chores.length === 0 && (
+      {error && (
+        <p className="text-red-400 text-sm text-center py-2">{error}</p>
+      )}
+      {chores.length === 0 && !error && (
         <p className="text-muted">No chores yet. Use the &quot;+ Add&quot; menu above to create one.</p>
       )}
       {[...chores].sort((a, b) => {

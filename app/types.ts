@@ -12,7 +12,6 @@ export type Frequency = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly
 export interface Chore {
   _id: string;
   name: string;
-  description: string;
   frequency: Frequency;
   assignedTo: User | null;
   dueDate: string;
